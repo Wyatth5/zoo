@@ -77,7 +77,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ post });
     }
 
-    const agentsToReact = shuffle(selectedAgents).slice(0, 3);
+    const agentsToReact = selectedAgents;
 
     const generatedComments = await Promise.all(
       agentsToReact.map(async (agent) => {
