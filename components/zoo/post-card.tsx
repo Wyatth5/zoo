@@ -73,7 +73,7 @@ export function PostCard({ post }: { post: Post }) {
 
     if (!topLevelComments || topLevelComments.length === 0) return;
 
-    const delays = [800, 3500, 8000, 14000];
+    const delays = [800, 1800, 3000, 4500, 6500, 9000, 12000, 14000];
 
     const timers = topLevelComments.map((_, index) =>
       setTimeout(() => {
