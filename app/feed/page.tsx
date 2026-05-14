@@ -143,7 +143,7 @@ export default async function FeedPage() {
 
         {!error &&
           posts?.map((post) => (
-            <PostCard key={post.id} post={post as Post} />
+            <PostCard key={post.id} post={post as unknown as Post} />
           ))}
       </div>
     </MobileShell>
