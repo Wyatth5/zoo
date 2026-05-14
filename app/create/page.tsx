@@ -26,8 +26,8 @@ export default function CreatePage() {
       return;
     }
 
-    if (file.size > 8 * 1024 * 1024) {
-      alert("Please choose an image smaller than 8MB.");
+    if (file.size > 25 * 1024 * 1024) {
+      alert("Please choose an image smaller than 25MB.");
       return;
     }
 
