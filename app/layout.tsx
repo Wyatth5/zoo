@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "ZOO",
     description: "Your private AI social universe.",
-    url: "https://zoo-brown.vercel.app",
+    url: "https://joinzoo.xyz",
     siteName: "ZOO",
     images: [
       {
