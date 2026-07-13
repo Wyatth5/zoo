@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { MobileShell } from "@/components/zoo/mobile-shell";
 import { PostCard } from "@/components/zoo/post-card";
-import { supabase } from "@/lib/supabase";
 import { createClient } from "@/utils/supabase/server";
 
 type Agent = {
@@ -10,6 +9,10 @@ type Agent = {
   name: string;
   emoji: string | null;
   vibe: string | null;
+};
+
+type CommentLike = {
+  user_id: string;
 };
 
 type Comment = {
@@ -21,6 +24,7 @@ type Comment = {
   user_display_name: string | null;
   agent_id: string | null;
   agents: Agent | null;
+  comment_likes: CommentLike[];
 };
 
 type Post = {
@@ -34,11 +38,11 @@ type Post = {
 export const dynamic = "force-dynamic";
 
 export default async function FeedPage() {
-  const authSupabase = await createClient();
+  const supabase = await createClient();
 
   const {
     data: { user },
-  } = await authSupabase.auth.getUser();
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return (
@@ -92,12 +96,18 @@ export default async function FeedPage() {
           name,
           emoji,
           vibe
+        ),
+        comment_likes (
+          user_id
         )
       )
     `)
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
-    .order("created_at", { referencedTable: "comments", ascending: true });
+    .order("created_at", {
+      referencedTable: "comments",
+      ascending: true,
+    });
 
   return (
     <MobileShell activeTab="feed">
@@ -143,7 +153,11 @@ export default async function FeedPage() {
 
         {!error &&
           posts?.map((post) => (
-            <PostCard key={post.id} post={post as unknown as Post} />
+            <PostCard
+              key={post.id}
+              post={post as unknown as Post}
+              currentUserId={user.id}
+            />
           ))}
       </div>
     </MobileShell>

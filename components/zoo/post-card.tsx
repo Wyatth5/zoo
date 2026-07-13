@@ -4,12 +4,17 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { Heart, MessageCircle, Send, User } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 
 type Agent = {
   id: string;
   name: string;
   emoji: string | null;
   vibe: string | null;
+};
+
+type CommentLike = {
+  user_id: string;
 };
 
 type Comment = {
@@ -21,6 +26,7 @@ type Comment = {
   user_display_name: string | null;
   agents: Agent | null;
   agent_id: string | null;
+  comment_likes: CommentLike[];
 };
 
 type Post = {
@@ -31,13 +37,26 @@ type Post = {
   comments: Comment[];
 };
 
-export function PostCard({ post }: { post: Post }) {
+export function PostCard({
+  post,
+  currentUserId,
+}: {
+  post: Post;
+  currentUserId: string;
+}) {
   const router = useRouter();
+  const supabase = createClient();
 
   const [visibleCount, setVisibleCount] = useState(0);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [isReplying, setIsReplying] = useState(false);
+  const [likedCommentIds, setLikedCommentIds] = useState<Set<string>>(
+    () => new Set()
+  );
+  const [updatingLikeIds, setUpdatingLikeIds] = useState<Set<string>>(
+    () => new Set()
+  );
 
   const topLevelComments = useMemo(
     () => post.comments?.filter((comment) => !comment.parent_comment_id) || [],
@@ -61,6 +80,20 @@ export function PostCard({ post }: { post: Post }) {
   }, [post.comments]);
 
   useEffect(() => {
+    const initialLikedIds = new Set(
+      (post.comments || [])
+        .filter((comment) =>
+          comment.comment_likes?.some(
+            (like) => like.user_id === currentUserId
+          )
+        )
+        .map((comment) => comment.id)
+    );
+
+    setLikedCommentIds(initialLikedIds);
+  }, [post.comments, currentUserId]);
+
+  useEffect(() => {
     const storageKey = `zoo-post-revealed-${post.id}`;
     const alreadyRevealed = localStorage.getItem(storageKey);
 
@@ -71,7 +104,7 @@ export function PostCard({ post }: { post: Post }) {
 
     setVisibleCount(0);
 
-    if (!topLevelComments || topLevelComments.length === 0) return;
+    if (topLevelComments.length === 0) return;
 
     const delays = [800, 1800, 3000, 4500, 6500, 9000, 12000, 14000];
 
@@ -97,6 +130,63 @@ export function PostCard({ post }: { post: Post }) {
   const visibleComments = topLevelComments.slice(0, visibleCount);
   const nextAgent = topLevelComments[visibleCount]?.agents;
 
+  async function toggleLike(commentId: string) {
+    if (updatingLikeIds.has(commentId)) return;
+
+    const wasLiked = likedCommentIds.has(commentId);
+
+    setUpdatingLikeIds((current) => {
+      const next = new Set(current);
+      next.add(commentId);
+      return next;
+    });
+
+    setLikedCommentIds((current) => {
+      const next = new Set(current);
+
+      if (wasLiked) {
+        next.delete(commentId);
+      } else {
+        next.add(commentId);
+      }
+
+      return next;
+    });
+
+    const { error } = wasLiked
+      ? await supabase
+          .from("comment_likes")
+          .delete()
+          .eq("user_id", currentUserId)
+          .eq("comment_id", commentId)
+      : await supabase.from("comment_likes").insert({
+          user_id: currentUserId,
+          comment_id: commentId,
+        });
+
+    setUpdatingLikeIds((current) => {
+      const next = new Set(current);
+      next.delete(commentId);
+      return next;
+    });
+
+    if (error) {
+      setLikedCommentIds((current) => {
+        const next = new Set(current);
+
+        if (wasLiked) {
+          next.add(commentId);
+        } else {
+          next.delete(commentId);
+        }
+
+        return next;
+      });
+
+      alert(error.message);
+    }
+  }
+
   async function submitReply(parentComment: Comment) {
     if (!replyText.trim() || isReplying || !parentComment.agent_id) return;
 
@@ -121,7 +211,6 @@ export function PostCard({ post }: { post: Post }) {
       alert(errorData.error || "Something went wrong sending your reply.");
 
       setIsReplying(false);
-
       return;
     }
 
@@ -182,6 +271,8 @@ export function PostCard({ post }: { post: Post }) {
         {visibleComments.map((comment) => {
           const replies = repliesByParent[comment.id] || [];
           const isOpen = replyingTo === comment.id;
+          const isLiked = likedCommentIds.has(comment.id);
+          const isUpdatingLike = updatingLikeIds.has(comment.id);
 
           return (
             <div
@@ -218,9 +309,20 @@ export function PostCard({ post }: { post: Post }) {
                   Reply
                 </button>
 
-                <button className="flex items-center gap-1">
-                  <Heart className="h-3 w-3" />
-                  Like
+                <button
+                  onClick={() => toggleLike(comment.id)}
+                  disabled={isUpdatingLike}
+                  className={`flex items-center gap-1 transition ${
+                    isLiked
+                      ? "font-semibold text-fuchsia-300"
+                      : "text-white/40"
+                  } disabled:opacity-50`}
+                >
+                  <Heart
+                    className="h-3 w-3"
+                    fill={isLiked ? "currentColor" : "none"}
+                  />
+                  {isLiked ? "Liked" : "Like"}
                 </button>
               </div>
 
