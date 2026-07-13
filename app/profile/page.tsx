@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { LogOut, Settings, User } from "lucide-react";
+import { LogOut, MessageSquare, Settings, User } from "lucide-react";
 import { MobileShell } from "@/components/zoo/mobile-shell";
 import { createClient } from "@/utils/supabase/server";
 
@@ -110,6 +110,14 @@ export default async function ProfilePage() {
           <p className="mb-2 text-sm font-bold text-white/50">Account</p>
           <p className="text-sm text-white/50">{user.email}</p>
         </div>
+
+        <Link
+          href="/feedback"
+          className="flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/10 px-5 py-4 font-bold text-fuchsia-200"
+        >
+          <MessageSquare className="h-4 w-4" />
+          Send feedback
+        </Link>
 
         <Link
           href="/logout"
