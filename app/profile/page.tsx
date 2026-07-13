@@ -45,6 +45,11 @@ export default async function ProfilePage() {
     .select("*", { count: "exact", head: true })
     .eq("user_id", user.id);
 
+  const { count: crewCount } = await supabase
+    .from("user_agents")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id);
+
   const displayName = profile?.username ? `@${profile.username}` : "@you";
 
   return (
@@ -102,7 +107,7 @@ export default async function ProfilePage() {
 
         <div className="grid grid-cols-3 gap-3">
           <Stat label="Posts" value={String(postCount || 0)} />
-          <Stat label="Crew" value="8" />
+          <Stat label="Crew" value={String(crewCount || 0)} />
           <Stat label="Reactions" value="∞" />
         </div>
 
@@ -116,7 +121,7 @@ export default async function ProfilePage() {
           className="flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/10 px-5 py-4 font-bold text-fuchsia-200"
         >
           <MessageSquare className="h-4 w-4" />
-          Send feedback
+          Help shape ZOO
         </Link>
 
         <Link
